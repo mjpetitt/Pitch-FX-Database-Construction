@@ -1,0 +1,46 @@
+#Access dataset previously created
+library(dplyr, warn.conflicts = FALSE)
+library('DBI')
+library('ggplot2')
+library('pitchRx')
+
+db <- src_sqlite("pitchRx.sqlite3", create = TRUE)
+
+
+db
+db <- src_sqlite('~/Desktop/pitchRx.sqlite3')
+db
+scrape(start = "2012-03-28", end = "2012-10-28", connect = db$con)
+scrape(start = "2013-03-31", end = "2013-10-31", connect = db$con)
+scrape(start = "2014-03-22", end = "2014-10-29", connect = db$con)
+scrape(start = "2015-04-05", end = "2015-11-01", connect = db$con)
+scrape(start = "2016-09-09", end = "2016-09-11", connect = db$con)
+
+
+scrape(start = "2016-08-31", end = "2016-08-31", connect = db$con)
+
+
+
+#Add in the other table to the normal atbat/pitch datasets
+files <- c("inning/inning_hit.xml", "miniscoreboard.xml", "players.xml")
+scrape(start = "2015-01-01", end = "2016-01-01", suffix = files, connect = my_db$con)
+
+
+atbats <- tbl(db, 'atbat')
+atbats$query
+atbatmaster <- filter(tbl(db, 'atbat'), date >= '2012_04_06' & date <= '2016_07_27') 
+explain(atbatmaster)
+ZobristMaster <- filter(atbatmaster, batter_name == 'Ben Zobrist')
+dbSendQuery(db$con, 'CREATE INDEX batter_idx ON atbat(batter_name)')
+explain(ZobristMaster)
+pitches <- tbl(db, 'pitch')
+b15 <- inner_join(pitches, bryant15, by = c('num', 'gameday_link'))
+dbSendQuery(db$con, 'CREATE INDEX pitch_idx ON pitch(gameday_link, num)')
+bryant <- collect(b15)
+
+atbat16 <- filter(tbl(db, 'atbat'), date >= '2016_04_04' & date <= '2016_08_29')
+explain(atbat16)
+Lester_J_16 <- filter(atbat16, pitcher_name == 'Jon Lester')
+pitches <- tbl(db, 'pitch')
+Lester16 <- inner_join(pitches, Lester_J_16, by = c('num', 'gameday_link'))
+Jon_Lester_16 <- collect(Lester16)
